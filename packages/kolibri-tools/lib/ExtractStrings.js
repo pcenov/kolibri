@@ -24,9 +24,9 @@ function isPascalCase(str) {
 
 function generateMessagesObject(messagesObject) {
   // define here and then let it be assigned during eval
-  var messages; // eslint-disable-line no-unused-vars
+  let messages; // eslint-disable-line no-unused-vars
   // AST node that can be used to generate the messages object once parsed from the module
-  var messagesAST = {
+  let messagesAST = {
     type: 'ExpressionStatement',
     expression: {
       type: 'AssignmentExpression',
@@ -47,13 +47,13 @@ function ExtractStrings(messageDir, messagesName) {
 }
 
 ExtractStrings.prototype.apply = function(compiler) {
-  var self = this;
+  let self = this;
   // Only do this in non-production mode, as otherwise the module detection code
   // does not work for .vue files.
   if (process.env.NODE_ENV !== 'production') {
     compiler.hooks.emit.tapAsync('extractStrings', function(compilation, callback) {
-      var messageExport = {};
-      var nameSpaces = [];
+      let messageExport = {};
+      let nameSpaces = [];
       function registerFoundMessages(messageNameSpace, messages, module) {
         if (messageNameSpace) {
           // Warn about duplicate nameSpaces *within* a bundle (no way to warn across).
@@ -72,7 +72,7 @@ ExtractStrings.prototype.apply = function(compiler) {
             Object.keys(messages).forEach(function(key) {
               // Every message needs to be namespaced - don't pollute our top level!
               // Create a new message id from the name space and the message id joined with '.'
-              var msgId = messageNameSpace + '.' + key;
+              let msgId = messageNameSpace + '.' + key;
               // Save it onto our export object for the whole bundle.
               messageExport[msgId] = messages[key];
             });
@@ -88,10 +88,10 @@ ExtractStrings.prototype.apply = function(compiler) {
         }
       }
       compilation.chunks.forEach(function(chunk) {
-        var messageNameSpace;
-        var messages;
-        var ast;
-        var parsedUrl;
+        let messageNameSpace;
+        let messages;
+        let ast;
+        let parsedUrl;
         // Explore each module within the chunk (built inputs):
         for (const module of chunk.modulesIterable) {
           messageNameSpace = undefined;
@@ -112,7 +112,7 @@ ExtractStrings.prototype.apply = function(compiler) {
             });
             // Maintain references to possible component definitions in case
             // it is not exported as the default export
-            var componentCache = {};
+            let componentCache = {};
             ast.body.forEach(function(node) {
               // Look through each top level node until we find the module.exports or export default
               // Can either be a direct export of the component object,
@@ -222,7 +222,7 @@ ExtractStrings.prototype.apply = function(compiler) {
             ast = espree.parse(module._source.source(), {
               sourceType: 'module',
             });
-            var createTranslateFn;
+            let createTranslateFn;
             // First find the reference being used for the create translator function
             ast.body.forEach(node => {
               // Check if an import
@@ -245,7 +245,7 @@ ExtractStrings.prototype.apply = function(compiler) {
               function getVarScope(name) {
                 return scopeChain.find(scope => typeof scope[name] !== 'undefined');
               }
-              var varScope;
+              let varScope;
               if (node) {
                 if (
                   node.type === espree.Syntax.FunctionDeclaration ||
@@ -255,7 +255,7 @@ ExtractStrings.prototype.apply = function(compiler) {
                   // These node types create a new scope
                   scopeChain.unshift({});
                 }
-                var localScope = scopeChain[0];
+                let localScope = scopeChain[0];
                 // New declarations only affect the local scope
                 if (node.type === espree.Syntax.VariableDeclaration) {
                   node.declarations.forEach(dec => {
@@ -283,8 +283,8 @@ ExtractStrings.prototype.apply = function(compiler) {
                   node.type === espree.Syntax.CallExpression &&
                   node.callee.name === createTranslateFn
                 ) {
-                  var messageNameSpace, messages;
-                  var firstArg = node.arguments[0];
+                  let messageNameSpace, messages;
+                  let firstArg = node.arguments[0];
                   if (firstArg.type === espree.Syntax.Literal) {
                     // First argument is a string, get its value directly
                     messageNameSpace = firstArg.value;
@@ -299,27 +299,25 @@ ExtractStrings.prototype.apply = function(compiler) {
                       );
                     }
                   }
-                  var secondArg = node.arguments[1];
-                  if (secondArg.type === espree.Syntax.ObjectExpression) {
-                    // Second argument is an object, parse this chunk of
-                    // the AST to get an object back
-                    messages = generateMessagesObject(secondArg);
-                  } else if (secondArg.type === espree.Syntax.Identifier) {
-                    // Second argument is a variable, lookup in the appropriate scope
-                    varScope = getVarScope(secondArg.name);
-                    if (varScope) {
-                      messages = generateMessagesObject(varScope[secondArg.name]);
-                    } else {
-                      logging.warn(
-                        `Translator object called with undefined messages argument in ${module.resource}`
-                      );
-                    }
-                  }
-                  registerFoundMessages(messageNameSpace, messages, module);
-                }
-                for (var key in node) {
+                 let secondArg = node.arguments[1];
+                   if (secondArg.type === espree.Syntax.ObjectExpression) {
+                         messages = generateMessagesObject(secondArg);
+                           } else if (secondArg.type === espree.Syntax.Identifier) {
+                               varScope = getVarScope(secondArg.name);
+                                  messages = varScope
+                         ? generateMessagesObject(varScope[secondArg.name])
+                      : (() => {
+                         logging.warn(
+                            `Translator object called with undefined messages argument in ${module.resource}`
+                    );
+                        return null; // Adjust this return value as needed
+                     })(); // Execute the function to log the warning and get the return value
+                   }
+                      registerFoundMessages(messageNameSpace, messages, module);}
+
+                for (let key in node) {
                   if (has(node, key)) {
-                    var child = node[key];
+                    let child = node[key];
                     if (typeof child === 'object' && child !== null) {
                       if (Array.isArray(child)) {
                         child.forEach(function(node) {
